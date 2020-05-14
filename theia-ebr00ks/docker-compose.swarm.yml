@@ -1,0 +1,40 @@
+version: '3.7'
+services:
+  theia-ide:
+    image: theia-ide:latest
+    cap_add:
+      - ALL
+    deploy:
+      labels:
+        traefik.enable: "true"
+#        traefik.http.routers.theia-live.rule: Host(`theia-live.home.conduit3.com`)
+#        traefik.http.routers.theia-live.entrypoints: https
+#        traefik.http.routers.theia-live.tls.certresolver: route53_resolver
+#        traefik.http.services.theia-live.loadbalancer.server.port: 4200
+#        traefik.tcp.routers.theia-debug.rule: Host(`theia-debug.home.conduit3.com`)
+#        traefik.tcp.routers.theia-debug.entrypoints: debug
+#        traefik.tcp.routers.theia-debug.tls.certresolver: route53_resolver
+#        traefik.tcp.services.theia-debug.loadbalancer.server.port: 9229
+        traefik.http.routers.theia-ide.rule: Host(`theia-ide.home.conduit3.com`)
+        traefik.http.routers.theia-ide.entrypoints: https
+        traefik.http.routers.theia-ide.tls.certresolver: route53_resolver
+        traefik.http.services.theia-ide.loadbalancer.server.port: 3000
+    devices:
+      - /dev/bus:/dev/bus
+#      - /dev/bus/usb/001/005:/dev/bus/usb/001/015
+    volumes: 
+      - /dev/bus/usb/:/dev/bus/usb/ 
+#      - /var/run/usbmuxd/:/var/run/usbmuxd/
+      - /opt:/opt
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${PWD}:/home/project:cached
+#      - /opt/neonzoom/covidschedule/:/home/project:cached
+    ports: 
+      - 9229:9229
+      - 4200:4200
+      - 3000:3000 
+    networks:
+      - edge_private
+networks:
+  edge_private:
+    external: true

@@ -13,23 +13,20 @@ ENV GLIB_VERSION 2.25-r0
 ENV JAVA_HOME /usr/lib/jvm/java-1.8-openjdk
 
 ENV GRADLE_HOME /usr/local/gradle
-ENV GRADLE_VERSION 4.4
+ENV GRADLE_VERSION 4.10
 
-#ENV ANDROID_HOME /usr/local/android-sdk-linux
+ENV ANDROID_HOME /usr/local/android-sdk-linux
 ENV ANDROID_SDK_ROOT /usr/local/android-sdk-linux
-ENV ANDRDOID_TOOLS_VERSION r25.2.5
-ENV ANDROID_API_LEVELS android-26
-ENV ANDROID_BUILD_TOOLS_VERSION 26.0.2
+ENV ANDRDOID_TOOLS_VERSION r29.0.3
+ENV ANDROID_API_LEVELS android-29
+ENV ANDROID_BUILD_TOOLS_VERSION 29.0.3
 ENV IONIC_VERSION 4.12.0
 
-ENV PATH ${GRADLE_HOME}/bin:${JAVA_HOME}/bin:${ANDROID_HOME}/tools:$ANDROID_HOME/platform-tools:$PATH
+ENV PATH $PATH:${GRADLE_HOME}/bin:${JAVA_HOME}/bin:${ANDROID_SDK_ROOT}/tools:$ANDROID_SDK_ROOT/platform-tools
 
 # INSTALL JAVA
-RUN apk update && \
-  apk add curl openjdk8-jre openjdk8
+RUN apk update && apk add curl openjdk8-jre openjdk8
 
-# INSTALL IONIC AND CORDOVA
-RUN npm install -g cordova ionic@${IONIC_VERSION}
 
 #INSTALL Graddle
 RUN mkdir -p ${GRADLE_HOME} && \
@@ -39,10 +36,49 @@ RUN mkdir -p ${GRADLE_HOME} && \
   rm -r ${GRADLE_HOME}/gradle-${GRADLE_VERSION}/
 
 # INSTALL ANDROID
-RUN mkdir -p ${ANDROID_HOME} && \
-  curl -L https://dl.google.com/android/repository/tools_${ANDRDOID_TOOLS_VERSION}-linux.zip > /tmp/tools.zip && \
-  unzip /tmp/tools.zip -d ${ANDROID_HOME}
+RUN mkdir -p ${ANDROID_SDK_ROOT} && \
+  curl -L https://dl.google.com/android/repository/commandlinetools-linux-6200805_latest.zip > /tmp/tools.zip && \
+  unzip /tmp/tools.zip -d ${ANDROID_SDK_ROOT}
+ENV REPO_OS_OVERRIDE linux
+RUN yes|$ANDROID_SDK_ROOT/tools/bin/sdkmanager --sdk_root=${ANDROID_HOME} --licenses
+# Update and install using sdkmanager
+RUN yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --sdk_root=${ANDROID_HOME} tools
+#RUN yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --sdk_root=${ANDROID_HOME} tools platform-tools
+RUN apk add usbutils android-tools --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing 
+RUN yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --sdk_root=${ANDROID_HOME} "build-tools;28.0.3" "build-tools;27.0.3"
+RUN yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --sdk_root=${ANDROID_HOME} "platforms;android-28" "platforms;android-27"
+RUN yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --sdk_root=${ANDROID_HOME} "extras;android;m2repository" "extras;google;m2repository"
 
+
+
+# INSTALL ANDROID
+#RUN mkdir -p ${ANDROID_SDK_ROOT} && \
+#  curl -L https://dl.google.com/android/repository/platform-tools_${ANDRDOID_TOOLS_VERSION}-linux.zip > /tmp/platform-tools.zip && \
+#  unzip /tmp/platform-tools.zip -d ${ANDROID_SDK_ROOT}
+
+# INSTALL ANDROID
+#RUN mkdir -p ${ANDROID_SDK_ROOT} && \
+#  curl -L https://dl.google.com/android/repository/build-tools_${ANDRDOID_TOOLS_VERSION}-linux.zip > /tmp/build-tools.zip && \
+#  unzip /tmp/build-tools.zip -d ${ANDROID_SDK_ROOT} && \
+#  mv ${ANDROID_SDK_ROOT}/android-10/ ${ANDROID_SDK_ROOT}/tools/
+
+#RUN echo y | android update sdk --no-ui -a --filter platform-tools,${ANDROID_API_LEVELS},build-tools-${ANDROID_BUILD_TOOLS_VERSION}
+
+# Make license agreement
+#RUN mkdir $ANDROID_SDK_ROOT/licenses && \
+#    echo 8933bad161af4178b1185d1a37fbf41ea5269c55 > $ANDROID_SDK_ROOT/licenses/android-sdk-license && \
+#    echo d56f5187479451eabf01fb78af6dfcb131a6481e >> $ANDROID_SDK_ROOT/licenses/android-sdk-license && \
+#    echo 24333f8a63b6825ea9c5514f83c2829b004d1fee >> $ANDROID_SDK_ROOT/licenses/android-sdk-license && \
+#    echo 84831b9409646a918e30573bab4c9c91346d8abd > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license
+
+
+#FILES DELETION
+RUN rm -rf /tmp/* /var/cache/apk/*
+ENV GRADLE_HOME /usr/local/gradle/bin
+# INSTALL IONIC AND CORDOVA
+RUN npm install -g --unsafe-perm=true @ionic/cli native-run cordova cordova-res 
+RUN npm install -g @angular/cli 
+RUN mkdir -p $HOME/.android/avd
 # INSTALL GLIBC
 RUN curl -L https://raw.githubusercontent.com/wassim6/alpine-pkg-glibc/master/sgerrand.rsa.pub > /etc/apk/keys/sgerrand.rsa.pub && \
   curl -L ${GLIB_PACKAGE_BASE_URL}/${GLIB_VERSION}/glibc-${GLIB_VERSION}.apk > /tmp/glibc.apk && \
@@ -50,16 +86,3 @@ RUN curl -L https://raw.githubusercontent.com/wassim6/alpine-pkg-glibc/master/sg
   apk add /tmp/glibc-bin.apk /tmp/glibc.apk
 
 # CONFIGURATION
-RUN echo y | android update sdk --no-ui -a --filter platform-tools,${ANDROID_API_LEVELS},build-tools-${ANDROID_BUILD_TOOLS_VERSION}
-
-# Make license agreement
-RUN mkdir $ANDROID_HOME/licenses && \
-    echo 8933bad161af4178b1185d1a37fbf41ea5269c55 > $ANDROID_HOME/licenses/android-sdk-license && \
-    echo d56f5187479451eabf01fb78af6dfcb131a6481e >> $ANDROID_HOME/licenses/android-sdk-license && \
-    echo 24333f8a63b6825ea9c5514f83c2829b004d1fee >> $ANDROID_HOME/licenses/android-sdk-license && \
-    echo 84831b9409646a918e30573bab4c9c91346d8abd > $ANDROID_HOME/licenses/android-sdk-preview-license
-
-
-#FILES DELETION
-RUN rm -rf /tmp/* /var/cache/apk/*
-
